@@ -37,11 +37,13 @@
               "options using EndpointResourceProvider.extendConfig: " + requiredAndMissing.join(", "));
         }
 
-        function EndpointsResourceFactory(resource_path, extra_headers) {
+        function EndpointsResourceFactory(resource_path, Token) {
 
           var endpoint = config.hostname + config.prefix + '/' + config.endpoints_api_name 
                 + '/' + config.endpoints_api_version + '/' + resource_path;
-          var extra_headers = extra_headers || {}, defaultParams = {};
+          var extra_headers = Token !== undefined ? Token.getAsHeaderConfig() : {}; 
+          console.log("Endoponts headers", extra_headers);
+          var defaultParams = {};
           /**
           if (RENZU_CONFIG.apiKey) {
             defaultParams.apiKey = MONGOLAB_CONFIG.apiKey;
