@@ -38,12 +38,19 @@
         }
 
         function EndpointsResourceFactory(resource_path, Token) {
-
           var endpoint = config.hostname + config.prefix + '/' + config.endpoints_api_name 
                 + '/' + config.endpoints_api_version + '/' + resource_path;
-          var extra_headers = Token !== undefined ? Token.getAsHeaderConfig() : {}; 
-          console.log("Endoponts headers", extra_headers);
+          var token = Token;
+          var extraHeaders = {};
           var defaultParams = {};
+
+          var getExtraHeaders = function(){
+            if(token.hasValidToken()){
+              angular.extend(extraHeaders, token.getAsHeaderConfig());
+            }
+            return extraHeaders;
+          };
+
           /**
           if (RENZU_CONFIG.apiKey) {
             defaultParams.apiKey = MONGOLAB_CONFIG.apiKey;
@@ -58,7 +65,8 @@
               var result;
               if (isArray) {
                 result = [];
-                for (var i = 0; i < response.data.length; i++) {
+                var i;
+                for (i = 0; i < response.data.length; i++) {
                   result.push(new Resource(response.data[i]));
                 }
               } else {
@@ -66,8 +74,8 @@
                 console.log("Response from endpoint, empty debug ??", response);
                 if (response.data === " null "){
                   return $q.reject({
-                    code:'resource.notfound',
-                    collection:collectionName
+                    code: 'resource.notfound',
+                    collection: collectionName
                   });
                 } else {
                   result = new Resource(response.data);
@@ -92,15 +100,15 @@
           Resource.query = function (queryJson, successcb, errorcb) {
             var params = angular.isObject(queryJson) ? {q:JSON.stringify(queryJson)} : {};
             var httpPromise = $http.get(endpoint, {
-              headers: extra_headers,
-              params: angular.extend({}, defaultParams, queryJson),
+              headers: getExtraHeaders(),
+              params: angular.extend({}, defaultParams, queryJson)
             });
             return thenFactoryMethod(httpPromise, successcb, errorcb, false);
           };
 
           Resource.getById = function (id, successcb, errorcb) {
             var httpPromise = $http.get(endpoint + '/' + id, {
-              headers: extra_headers,
+              headers: getExtraHeaders(),
               params: defaultParams
             });
             return thenFactoryMethod(httpPromise, successcb, errorcb);
@@ -124,7 +132,7 @@
 
           Resource.prototype.$save = function (successcb, errorcb) {
             var httpPromise = $http.post(endpoint, this, {
-              headers: extra_headers,
+              headers: getExtraHeaders(),
               params: defaultParams
             });
             return thenFactoryMethod(httpPromise, successcb, errorcb);
@@ -132,7 +140,7 @@
 
           Resource.prototype.$update = function (successcb, errorcb) {
             var httpPromise = $http.put(endpoint + "/" + this.$id(), angular.extend({}, this, {_id:undefined}), {
-              headers: extra_headers,
+              headers: getExtraHeaders(),
               params:defaultParams
             });
             return thenFactoryMethod(httpPromise, successcb, errorcb);
@@ -140,7 +148,7 @@
 
           Resource.prototype.$remove = function (successcb, errorcb) {
             var httpPromise = $http['delete'](endpoint + "/" + this.$id(), {
-              headers: extra_headers,
+              headers: getExtraHeaders(),
               params:defaultParams
             });
             return thenFactoryMethod(httpPromise, successcb, errorcb);
@@ -149,16 +157,14 @@
           Resource.prototype.$saveOrUpdate = function (savecb, updatecb, errorSavecb, errorUpdatecb) {
             if (this.$id()) {
               return this.$update(updatecb, errorUpdatecb);
-            } else {
-              return this.$save(savecb, errorSavecb);
             }
+            return this.$save(savecb, errorSavecb);
           };
 
           return Resource;
-        };
+        }
 
         return EndpointsResourceFactory;
-
       }];
     });
-})();
+}());
